@@ -42,14 +42,32 @@ interface UpdatedTextBlock {
   maxWidth?: number;
 }
 
+interface DefaultToolbarItem {
+  type: string;
+}
+
+interface MinimalToolbarItem {
+  type: string;
+}
+
 export default function Viewer({ document }: ViewerProps) {
   const containerRef = useRef(null);
   const overlaysRef = useRef<string[]>([]);
-  const textBlocksRef = useRef<TextBlock[]>([]); // Store all text blocks for current page
+  const textBlocksRef = useRef<(TextBlock & { pageIndex: number })[]>([]); // Store all text blocks for all pages
   const [currentPageIndex, setCurrentPageIndex] = useState<number>(0);
   const [isEditing, setIsEditing] = useState<boolean>(false);
-  const [selected, setSelected] = useState<TextBlock[]>([]); // Changed to store complete TextBlock objects
+  const [selected, setSelected] = useState<(TextBlock & { pageIndex: number })[]>([]); // Changed to store complete TextBlock objects with page info
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
+
+  const minimalToolbarItems: MinimalToolbarItem[] = [
+    { type: 'sidebar-thumbnails' },
+    { type: 'sidebar-thumbnails' },
+    { type: 'sidebar-bookmarks' },
+    { type: 'zoom-out' },
+    { type: 'zoom-in' },
+    { type: 'zoom-mode' },
+    { type: 'search' },
+  ];
 
   const handleContentBoxesPress = useCallback(
     async (event: Event) => {
@@ -75,7 +93,6 @@ export default function Viewer({ document }: ViewerProps) {
           setSelected([]);
           setIsEditing(false);
         } else {
-          // Start editing mode
           console.log('Starting editing mode');
           setIsEditing(true);
 
@@ -83,12 +100,21 @@ export default function Viewer({ document }: ViewerProps) {
           const tempSession = await window.viewerInstance.beginContentEditingSession();
 
           try {
-            const textBlocks = await tempSession.getTextBlocks(currentPageIndex);
-            textBlocksRef.current = textBlocks; // Store text blocks for later reference
+            // loop through all pages in the document
+            const totalPages = window.viewerInstance.totalPageCount;
+            let allTextBlocks: (TextBlock & { pageIndex: number })[] = [];
+
+            for (let pageIndex = 0; pageIndex < totalPages; pageIndex++) {
+              const pageTextBlocks = await tempSession.getTextBlocks(pageIndex);
+              const textBlocksWithPageIndex = pageTextBlocks.map((tb: TextBlock) => ({ ...tb, pageIndex }));
+              allTextBlocks = allTextBlocks.concat(textBlocksWithPageIndex);
+            }
+
+            textBlocksRef.current = allTextBlocks; // Store text blocks for later reference
 
             const newOverlays: string[] = [];
 
-            textBlocks.forEach((textBlock: TextBlock) => {
+            allTextBlocks.forEach((textBlock: TextBlock & { pageIndex: number }) => {
               const overlayDiv = window.document.createElement('div');
               overlayDiv.style.position = 'absolute';
               overlayDiv.style.border = '2px solid blue'; // initial border color
@@ -118,7 +144,7 @@ export default function Viewer({ document }: ViewerProps) {
               const item = new window.PSPDFKit.CustomOverlayItem({
                 id: overlayId,
                 node: overlayDiv,
-                pageIndex: currentPageIndex,
+                pageIndex: textBlock.pageIndex,
                 position: new window.PSPDFKit.Geometry.Point({
                   x: textBlock.boundingBox.left,
                   y: textBlock.boundingBox.top,
@@ -131,7 +157,7 @@ export default function Viewer({ document }: ViewerProps) {
 
             overlaysRef.current = newOverlays;
           } finally {
-            // discard the temporary session
+            // discard the temporary session;
             await tempSession.discard();
           }
         }
@@ -306,11 +332,13 @@ export default function Viewer({ document }: ViewerProps) {
     if (container && NutrientViewer) {
       const licenseKey = process.env.NEXT_PUBLIC_NUTRIENT_LICENSE_KEY || '';
       console.log('License key from env:', licenseKey ? 'Found (length: ' + licenseKey.length + ')' : 'Not found');
-      
+
+      console.log(window.NutrientViewer?.defaultToolbarItems);
+
       NutrientViewer.load({
         container,
         document,
-        toolbarItems: [contentBoxesToolbar, aiToolbar],
+        toolbarItems: [...minimalToolbarItems, contentBoxesToolbar, aiToolbar, { type: 'export-pdf' }],
         licenseKey: licenseKey,
       })
         .then((instance: NutrientViewerInstance) => {
@@ -345,7 +373,7 @@ export default function Viewer({ document }: ViewerProps) {
   // Separate effect to update toolbar items
   useEffect(() => {
     if (window.viewerInstance) {
-      window.viewerInstance.setToolbarItems([contentBoxesToolbar, aiToolbar]);
+      window.viewerInstance.setToolbarItems([...minimalToolbarItems, contentBoxesToolbar, aiToolbar, { type: 'export-pdf' }]);
     }
   }, [contentBoxesToolbar, aiToolbar]);
 
