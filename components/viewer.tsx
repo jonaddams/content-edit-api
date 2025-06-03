@@ -42,14 +42,6 @@ interface UpdatedTextBlock {
   maxWidth?: number;
 }
 
-interface DefaultToolbarItem {
-  type: string;
-}
-
-interface MinimalToolbarItem {
-  type: string;
-}
-
 export default function Viewer({ document }: ViewerProps) {
   const containerRef = useRef(null);
   const overlaysRef = useRef<string[]>([]);
@@ -59,7 +51,7 @@ export default function Viewer({ document }: ViewerProps) {
   const [selected, setSelected] = useState<(TextBlock & { pageIndex: number })[]>([]); // Changed to store complete TextBlock objects with page info
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
 
-  const minimalToolbarItems: MinimalToolbarItem[] = [
+  const minimalToolbarItems = [
     { type: 'sidebar-thumbnails' },
     { type: 'sidebar-thumbnails' },
     { type: 'sidebar-bookmarks' },
@@ -67,7 +59,7 @@ export default function Viewer({ document }: ViewerProps) {
     { type: 'zoom-in' },
     { type: 'zoom-mode' },
     { type: 'search' },
-  ];
+  ] as const;
 
   const handleContentBoxesPress = useCallback(
     async (event: Event) => {
@@ -338,7 +330,7 @@ export default function Viewer({ document }: ViewerProps) {
       NutrientViewer.load({
         container,
         document,
-        toolbarItems: [...minimalToolbarItems, contentBoxesToolbar, aiToolbar, { type: 'export-pdf' }],
+        toolbarItems: [...minimalToolbarItems, contentBoxesToolbar, aiToolbar, { type: 'content-editor' }, { type: 'export-pdf' }],
         licenseKey: licenseKey,
       })
         .then((instance: NutrientViewerInstance) => {
@@ -373,7 +365,7 @@ export default function Viewer({ document }: ViewerProps) {
   // Separate effect to update toolbar items
   useEffect(() => {
     if (window.viewerInstance) {
-      window.viewerInstance.setToolbarItems([...minimalToolbarItems, contentBoxesToolbar, aiToolbar, { type: 'export-pdf' }]);
+      window.viewerInstance.setToolbarItems([...minimalToolbarItems, contentBoxesToolbar, aiToolbar, { type: 'content-editor' }, { type: 'export-pdf' }]);
     }
   }, [contentBoxesToolbar, aiToolbar]);
 
