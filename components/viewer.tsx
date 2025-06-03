@@ -325,8 +325,6 @@ export default function Viewer({ document }: ViewerProps) {
       const licenseKey = process.env.NEXT_PUBLIC_NUTRIENT_LICENSE_KEY || '';
       console.log('License key from env:', licenseKey ? 'Found (length: ' + licenseKey.length + ')' : 'Not found');
 
-      console.log(window.NutrientViewer?.defaultToolbarItems);
-
       NutrientViewer.load({
         container,
         document,
