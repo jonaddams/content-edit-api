@@ -83,7 +83,7 @@ export default function Home() {
             <div className='bg-white rounded-lg shadow-sm border border-gray-200 h-full min-h-[600px]'>
               <div className='p-6'>
                 <div className='h-full'>
-                  <Viewer document='Sample Headings with Google Fonts.pdf' />
+                  <Viewer document='Sample Doc with Google Fonts.pdf' />
                 </div>
               </div>
             </div>
